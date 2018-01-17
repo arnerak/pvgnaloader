@@ -55,7 +55,11 @@ payload = {
     'commit': 'Log In'
 }
 print("Logging in...")
-s.post(PVGNALOGIN, data=payload)
+r = s.post(PVGNALOGIN, data=payload)
+
+if r.text.find('Invalid email or password.') != -1:
+    print("Login incorrect")
+    exit()
 
 vlinks = []
 vnames = []
