@@ -3,19 +3,18 @@ import subprocess
 import os
 import string
 import json
+import math
 
 settings = json.load(open('pvgnaloader.ini'))
 
-MAIL = settings['email']
-PASS = settings['password']
-RES = settings['resolution']
+res = settings['resolution']
 links = settings['links']
 
 PVGNALOGIN = 'https://pvgna.com/login'
 FINDTOKENL = 'name="authenticity_token" value="'
 FINDTOKENR = '"'
 FINDVLINKL = ';'
-FINDVLINKR = '.m3u8'
+FINDVLINKR = res + '.m3u8'
 FINDVNAMEL = '<h1 class="ui header">'
 FINDVNAMER = '</h1>'
 FINDCHPTRL = '<a class="link step" href="'
@@ -35,10 +34,12 @@ def sanitize_filename(s):
     valid_chars = "-_.() %s%s" % (string.ascii_letters, string.digits)
     return ''.join(c for c in s if c in valid_chars)
     
-def print_progressbar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█'):
+def print_progressbar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 50):
+    blocks = ["", "▌"]
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
+    blockindex = math.floor(((length * iteration / total) - filledLength) * len(blocks))
+    bar = '█' * filledLength + blocks[blockindex] + '-' * (length - filledLength - len(blocks[blockindex]))
     print('\r%s |%s| %s%% %s' % (prefix, bar, percent, suffix), end = '\r')
     if iteration == total: 
         print()
@@ -55,15 +56,15 @@ token = find_between(r.text, FINDTOKENL, FINDTOKENR)
 payload = {
     'utf8': '&#x2713;',
     'authenticity_token': token,
-    'user[email]': MAIL,
-    'user[password]': PASS,
+    'user[email]': settings['email'],
+    'user[password]': settings['password'],
     'commit': 'Log In'
 }
 print("Logging in...")
 r = s.post(PVGNALOGIN, data=payload)
 
 if r.text.find('Invalid email or password.') != -1:
-    print("Login incorrect")
+    print('Login incorrect')
     exit()
 
 vlinks = []
@@ -71,8 +72,8 @@ vnames = []
 chapterlinks = links[:]
     
 if settings['crawlchapters']:
-    print("Fetching chapters...")
-    for link in links:
+    print('\rFetching chapters...', end='\r')
+    for idx,link in enumerate(links):
         r = s.get(link)
         restsrc = r.text
         while restsrc.find(FINDCHPTRL) != -1:
@@ -80,18 +81,21 @@ if settings['crawlchapters']:
             restsrc = restsrc[restsrc.find(FINDCHPTRL) + len(FINDCHPTRL):]
             if chapterlink not in chapterlinks:
                 chapterlinks.append(chapterlink)
+    print('\rFetching chapters... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
+print()
 
 links = chapterlinks
 
-print("Fetching video links...")
+print('\rFetching video links...', end='\r')
 for idx,link in enumerate(links):
     r = s.get(link)
-    vlink = find_between_r(r.text, RES + FINDVLINKR, FINDVLINKL)
+    vlink = find_between_r(r.text, FINDVLINKR, FINDVLINKL)
     vname = find_between(r.text, FINDVNAMEL, FINDVNAMER)
     vname = sanitize_filename(vname)
     vlinks.append(vlink)
     vnames.append(vname)
-    print_progressbar(idx+1, len(links))
+    print('\rFetching video links... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
+print()
     
 idx = 0
 while(idx < len(vnames)):
@@ -104,12 +108,12 @@ while(idx < len(vnames)):
         idx = idx + 1
 
 if len(vnames) == 0:
-    print("Nothing to download")
+    print('Nothing to download')
     exit()
     
-print("Downloading videos...")
+print('Downloading videos...')
 for idx,link in enumerate(vlinks):
-    r = s.get(link + RES + '.m3u8')
+    r = s.get(link + res + '.m3u8')
     lines = r.text.splitlines()
     ts_name = 'videos/' + vnames[idx] + '.ts'
     with open(ts_name, 'wb') as outfile:
@@ -122,12 +126,14 @@ for idx,link in enumerate(vlinks):
 
 print_progressbar(100, 100, str(len(vlinks))+'/'+str(len(vlinks)))
             
-print("Converting videos...")
-for vname in vnames:
+print('\rConverting videos...', end='\r')
+for idx,vname in enumerate(vnames):
     ts_name = 'videos/' + vname + '.ts'
     mp4_name = 'videos/' + vname + '.mp4'
     with open(os.devnull, 'w') as f:
         subprocess.call('ffmpeg -y -i "' + ts_name + '" -acodec copy -vcodec copy "' + mp4_name + '"', shell=True, stdout=f, stderr=subprocess.STDOUT)
     os.remove(ts_name)
+    print('\rConverting videos... [%s]' % str(idx+1)+'/'+str(len(vnames)), end='\r')
+print()
 
 print("Done")
