@@ -18,6 +18,8 @@ FINDVLINKL = ';'
 FINDVLINKR = '.m3u8'
 FINDVNAMEL = '<h1 class="ui header">'
 FINDVNAMER = '</h1>'
+FINDCHPTRL = '<a class="link step" href="'
+FINDCHPTRR = '"'
 
 def find_between(s, left, right):
     start = s.find(left) + len(left)
@@ -63,16 +65,31 @@ if r.text.find('Invalid email or password.') != -1:
 
 vlinks = []
 vnames = []
+chapterlinks = links[:]
+    
+if settings['crawlchapters']:
+    print("Fetching chapters...")
+    for link in links:
+        r = s.get(link)
+        restsrc = r.text
+        while restsrc.find(FINDCHPTRL) != -1:
+            chapterlink = 'https://pvgna.com' + find_between(restsrc, FINDCHPTRL, FINDCHPTRR)
+            restsrc = restsrc[restsrc.find(FINDCHPTRL) + len(FINDCHPTRL):]
+            if chapterlink not in chapterlinks:
+                chapterlinks.append(chapterlink)
+
+links = chapterlinks
 
 print("Fetching video links...")
-for link in links:
+for idx,link in enumerate(links):
     r = s.get(link)
     vlink = find_between_r(r.text, RES + FINDVLINKR, FINDVLINKL)
     vname = find_between(r.text, FINDVNAMEL, FINDVNAMER)
     vname = sanitize_filename(vname)
     vlinks.append(vlink)
     vnames.append(vname)
-
+    print_progressbar(idx+1, len(links))
+    
 idx = 0
 while(idx < len(vnames)):
     mp4_name = 'videos/' + vnames[idx] + '.mp4'
