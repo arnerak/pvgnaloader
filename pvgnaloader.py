@@ -45,6 +45,9 @@ def print_progressbar(iteration, total, prefix = '', suffix = '', decimals = 1, 
     
 print("Loading pvgna...")
 s = requests.Session()
+adapter = requests.adapters.HTTPAdapter(max_retries=10)
+s.mount('https://', adapter)
+s.mount('http://', adapter)
 r = s.get(PVGNALOGIN)
 
 token = find_between(r.text, FINDTOKENL, FINDTOKENR)
