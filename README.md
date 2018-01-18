@@ -4,15 +4,21 @@ Clone this repository and install dependencies as shown.
 
 `git clone https://github.com/arnibold/pvgnaloader`
 
-Run by editing pvgnaloader.ini and executing `python pvgnaloader.py`
+Fill in your [pvgna](http://pvgna.com) credentials in pvgnaloader.ini and run with 
 
-Dependencies:
+`python pvgnaloader.py`
 
-* [Python Requests](http://docs.python-requests.org/en/master/)
+### pvgnaloader.ini
 
-* [ffmpeg](https://www.ffmpeg.org/)
+* email: your pvgna registered email address.
+* password: your pvgna account password.
+* resolution: choose from 1080p, 720p, 480p, 360p.
+* crawlchapters: set to true if you want pvgnaloader to automatically download all chapters from a single link.
+* links: list of desired videos. If crawlchapters is true, only enter a single link of each guide.
 
-## Python Requests
+## Dependencies
+
+### Python Requests
 
 Clone repository:
 
@@ -22,8 +28,10 @@ Install:
 
 `cd requests`
 
-`pip install`
+`pip install .`
 
-## ffmpeg
+[Installation guide](http://docs.python-requests.org/en/master/user/install/)
+
+### ffmpeg
 
 Download [here](https://ffmpeg.zeranoe.com/builds/) and place ffmpeg.exe in pvgnaloader folder.
