@@ -72,8 +72,8 @@ vnames = []
 chapterlinks = links[:]
     
 if settings['crawlchapters']:
-    print('\rFetching chapters...', end='\r')
     for idx,link in enumerate(links):
+        print('\rFetching chapters... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
         r = s.get(link)
         restsrc = r.text
         while restsrc.find(FINDCHPTRL) != -1:
@@ -81,34 +81,32 @@ if settings['crawlchapters']:
             restsrc = restsrc[restsrc.find(FINDCHPTRL) + len(FINDCHPTRL):]
             if chapterlink not in chapterlinks:
                 chapterlinks.append(chapterlink)
-    print('\rFetching chapters... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
 print()
 
 links = chapterlinks
 
-print('\rFetching video links...', end='\r')
 for idx,link in enumerate(links):
+    print('\rFetching video links... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
     r = s.get(link)
     vlink = find_between_r(r.text, FINDVLINKR, FINDVLINKL)
     vname = find_between(r.text, FINDVNAMEL, FINDVNAMER)
     vname = sanitize_filename(vname)
     vlinks.append(vlink)
     vnames.append(vname)
-    print('\rFetching video links... [%s]' % (str(idx+1)+'/'+str(len(links))), end='\r')
 print()
     
 idx = 0
 while(idx < len(vnames)):
     mp4_name = 'videos/' + vnames[idx] + '.mp4'
     if os.path.isfile(mp4_name):
-        print('"' + vnames[idx] + '" already exists!')
+        print('"' + vnames[idx] + '" already exists.')
         del vlinks[idx]
         del vnames[idx]
     else:
         idx = idx + 1
 
 if len(vnames) == 0:
-    print('Nothing to download')
+    print('Nothing to download.')
     exit()
     
 print('Downloading videos...')
@@ -122,18 +120,17 @@ for idx,link in enumerate(vlinks):
                 r = s.get(link + ts_link, stream=True)
                 for chunk in r:
                     outfile.write(chunk)
-            print_progressbar(idx*100+100/len(lines)*(idx2), len(vlinks)*100, str(idx+1)+'/'+str(len(vlinks)))
+                print_progressbar(idx*100+100/len(lines)*(idx2), len(vlinks)*100, str(idx+1)+'/'+str(len(vlinks)))
 
 print_progressbar(100, 100, str(len(vlinks))+'/'+str(len(vlinks)))
-            
-print('\rConverting videos...', end='\r')
+
 for idx,vname in enumerate(vnames):
+    print('\rConverting videos... [%s]' % (str(idx+1)+'/'+str(len(vnames))), end='\r')
     ts_name = 'videos/' + vname + '.ts'
     mp4_name = 'videos/' + vname + '.mp4'
     with open(os.devnull, 'w') as f:
         subprocess.call('ffmpeg -y -i "' + ts_name + '" -acodec copy -vcodec copy "' + mp4_name + '"', shell=True, stdout=f, stderr=subprocess.STDOUT)
     os.remove(ts_name)
-    print('\rConverting videos... [%s]' % str(idx+1)+'/'+str(len(vnames)), end='\r')
 print()
 
-print("Done")
+print("Done.")
